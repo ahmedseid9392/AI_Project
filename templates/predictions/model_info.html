@@ -1,46 +1,139 @@
 {% extends 'base.html' %}
 
-{% block title %}Model Info{% endblock %}
+{% block title %}Model Information{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Prediction Model Information</h4>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <p><strong>Model trained:</strong> {{ is_trained|yesno:"Yes,No" }}</p>
-                    <p><strong>Total predictions:</strong> {{ total_predictions }}</p>
-                    <p><strong>Average confidence:</strong> {{ avg_confidence|default:"N/A"|floatformat:1 }}%</p>
-                    <p><strong>Students with grades:</strong> {{ students_with_grades }}</p>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-brain me-2"></i>Prediction Model Information</h4>
                 </div>
-                {% if feature_importance %}
-                <div class="mb-4">
-                    <h5>Feature importance</h5>
-                    <ul class="list-group">
-                        {% for feature, importance in feature_importance.items %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ feature|capfirst|replace:'_',' ' }}
-                            <span class="badge bg-info">{{ importance|floatformat:2 }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                <div class="card-body">
+                    <!-- Model Status -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            {% if is_trained %}
+                            <div class="alert alert-success">
+                                <strong>Model Status:</strong>
+                                <span class="badge bg-success">Trained</span>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <strong>Model Status:</strong>
+                                <span class="badge bg-danger">Not Trained</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ total_predictions|default:"0" }}</h3>
+                                    <small>Total Predictions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ total_students|default:"0" }}</h3>
+                                    <small>Total Students</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ students_with_grades|default:"0" }}</h3>
+                                    <small>Students with Grades</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>
+                                        {% if avg_confidence %}
+                                            {{ avg_confidence|floatformat:0 }}
+                                        {% else %}
+                                            0
+                                        {% endif %}
+                                    </h3>
+                                    <small>Avg Confidence %</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature Importance -->
+                    {% if feature_importance %}
+                    <div class="mb-4">
+                        <h5>Feature Importance</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Importance</th>
+                                        <th>Visualization</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for feature, importance in feature_importance.items %}
+                                    <tr>
+                                        <td>{{ feature|title }}</td>
+                                        <td>{{ importance|floatformat:3 }}</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-info" 
+                                                     style="width: 0%;"
+                                                     data-width="{{ importance|floatformat:0 }}%">
+                                                    {{ importance|floatformat:1 }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Model not trained yet. Click the button below to train the model.
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    {% if user.is_superuser or user.role == 'admin' %}
+                    <div class="mt-4">
+                        <form method="post" action="{% url 'predictions:retrain_model' %}" 
+                              onsubmit="return confirm('Are you sure you want to retrain the model? This may take a few moments.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sync-alt me-1"></i> Retrain Model
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="alert alert-warning">
-                    The model is not trained yet. Use a prediction or the training command to create the model.
-                </div>
-                {% endif %}
-                {% if user.is_superuser or user.role == 'admin' %}
-                <form method="post" action="{% url 'predictions:retrain_model' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Retrain Model</button>
-                </form>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var bars = document.querySelectorAll('.progress-bar[data-width]');
+        bars.forEach(function(bar) {
+            bar.style.width = bar.getAttribute('data-width');
+        });
+    });
+</script>
 {% endblock %}

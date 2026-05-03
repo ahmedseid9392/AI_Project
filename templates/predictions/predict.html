@@ -1,22 +1,37 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Predict Student{% endblock %}
+{% block title %}{% if is_staff %}Predict Student{% else %}My Prediction{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Make a Student Performance Prediction</h4>
+                {% if is_staff %}
+                <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Make a Student Performance Prediction</h4>
+                {% else %}
+                <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Predict Your Performance</h4>
+                <p class="mb-0 mt-1 small opacity-75">Fill in your academic details to see your predicted grade</p>
+                {% endif %}
             </div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
                     {{ form|crispy }}
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <button type="submit" class="btn btn-success">Run Prediction</button>
-                        <a href="{% url 'predictions:model_info' %}" class="btn btn-outline-secondary">Model Info</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-magic me-1"></i> Run Prediction
+                        </button>
+                        {% if is_staff %}
+                        <a href="{% url 'predictions:model_info' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-info-circle me-1"></i> Model Info
+                        </a>
+                        {% else %}
+                        <a href="{% url 'predictions:history' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-history me-1"></i> My History
+                        </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>

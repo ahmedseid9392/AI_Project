@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Dataset{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Training Dataset</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Upload a CSV file to train the prediction model. The file must contain the following columns:
+                </p>
+                <div class="alert alert-info">
+                    <strong>Required columns:</strong>
+                    <code>attendance_percentage</code>, <code>previous_grade</code>, <code>study_time</code>,
+                    <code>failures_past</code>, <code>family_support</code>, <code>extracurricular_activities</code>,
+                    <code>internet_access</code>, <code>parent_education</code>, <code>grade</code>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="dataset" class="form-label fw-bold">Select CSV File</label>
+                        <input type="file" class="form-control" id="dataset" name="dataset" accept=".csv" required>
+                        <div class="form-text">Only .csv files are accepted.</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cogs me-1"></i> Upload & Train Model
+                        </button>
+                        <a href="{% url 'predictions:model_info' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-info-circle me-1"></i> Model Info
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -10,9 +10,9 @@
             <h2 class="mb-4">
                 Welcome, {{ user.get_full_name|default:user.username }}!
             </h2>
-            
-            {% if user.role == 'admin' or user.is_staff %}
-                <!-- Admin Dashboard -->
+
+            {% if user.is_superuser or user.role == 'admin' or user.role == 'teacher' %}
+                <!-- ============ Admin / Teacher Dashboard ============ -->
                 <div class="row mb-4">
                     <div class="col-md-3 mb-3">
                         <div class="card text-white bg-primary">
@@ -34,7 +34,7 @@
                         <div class="card text-white bg-info">
                             <div class="card-body">
                                 <h5 class="card-title">Model Accuracy</h5>
-                                <h2 class="mb-0">{{ model_accuracy|default:"N/A" }}%</h2>
+                                <h2 class="mb-0">{{ model_accuracy|default:"N/A" }}{% if model_accuracy %}%{% endif %}</h2>
                             </div>
                         </div>
                     </div>
@@ -47,6 +47,45 @@
                         </div>
                     </div>
                 </div>
+
+                {% if user.is_superuser or user.role == 'admin' %}
+                <!-- Admin Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'predictions:upload_dataset' %}" class="text-decoration-none">
+                            <div class="card border-primary h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-upload fa-3x text-primary mb-3"></i>
+                                    <h5>Upload Dataset</h5>
+                                    <p class="text-muted mb-0">Load CSV data & train model</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'predictions:model_info' %}" class="text-decoration-none">
+                            <div class="card border-info h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-brain fa-3x text-info mb-3"></i>
+                                    <h5>Model Info</h5>
+                                    <p class="text-muted mb-0">View model status & metrics</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'students:student_list' %}" class="text-decoration-none">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-users fa-3x text-success mb-3"></i>
+                                    <h5>Manage Students</h5>
+                                    <p class="text-muted mb-0">View all student records</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="row">
                     <div class="col-md-6">
@@ -78,7 +117,13 @@
                                         <tbody>
                                             {% for pred in recent_predictions %}
                                             <tr>
-                                                <td>{{ pred.student.get_full_name|default:pred.student.username }}</td>
+                                                <td>
+                                                    {% if pred.student %}
+                                                        {{ pred.student.get_full_name|default:pred.student.student_id }}
+                                                    {% else %}
+                                                        <span class="text-muted"><i>Not Linked</i></span>
+                                                    {% endif %}
+                                                </td>
                                                 <td>
                                                     <span class="badge bg-{% if pred.predicted_grade == 'A' or pred.predicted_grade == 'B' %}success{% elif pred.predicted_grade == 'F' %}danger{% else %}warning{% endif %}">
                                                         {{ pred.predicted_grade }}
@@ -98,85 +143,108 @@
                     </div>
                 </div>
 
-            {% elif user.role == 'teacher' %}
-                <!-- Teacher Dashboard -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-chart-line fa-4x text-primary mb-3"></i>
-                                <h5>Make New Prediction</h5>
-                                <p class="text-muted">Predict student performance using ML model</p>
-                                <a href="{% url 'predict' %}" class="btn btn-primary btn-lg">Start Prediction</a>
+            {% else %}
+                <!-- ============ Student Dashboard ============ -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <a href="{% url 'predictions:predict' %}" class="text-decoration-none">
+                            <div class="card border-primary h-100">
+                                <div class="card-body text-center py-5">
+                                    <i class="fas fa-chart-line fa-4x text-primary mb-3"></i>
+                                    <h5>Get Your Prediction</h5>
+                                    <p class="text-muted">Fill in your academic data to predict your performance</p>
+                                    <span class="btn btn-primary btn-lg">Start Prediction</span>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-users fa-4x text-success mb-3"></i>
-                                <h5>Manage Students</h5>
-                                <p class="text-muted">Add and view student records</p>
-                                <a href="{% url 'student_list' %}" class="btn btn-success btn-lg">View All Students</a>
+                    <div class="col-md-6 mb-3">
+                        <a href="{% url 'predictions:history' %}" class="text-decoration-none">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center py-5">
+                                    <i class="fas fa-history fa-4x text-success mb-3"></i>
+                                    <h5>Your Prediction History</h5>
+                                    <p class="text-muted">View your past prediction results</p>
+                                    <span class="btn btn-success btn-lg">View History</span>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
-            {% else %}
-                <!-- Student Dashboard -->
-                <div class="card">
+                {% if student_profile %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-graduate me-2"></i>Your Academic Overview</h5>
+                    </div>
                     <div class="card-body">
-                        <h5>Your Academic Overview</h5>
-                        {% if student_profile %}
-                            <div class="row mt-4">
-                                <div class="col-md-4">
-                                    <strong>Attendance:</strong> {{ student_profile.attendance_percentage|default:0 }}%
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Study Time:</strong> {{ student_profile.study_time|default:0 }} hrs/week
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Current Grade:</strong> {{ student_profile.current_grade|default:"N/A" }}
-                                </div>
+                        <div class="row mt-2">
+                            <div class="col-md-3">
+                                <strong>Attendance:</strong> {{ student_profile.attendance_percentage|floatformat:1 }}%
                             </div>
-                            
-                            {% if student_predictions %}
-                                <hr>
-                                <h6 class="mt-4">Your Prediction History</h6>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Predicted Grade</th>
-                                                <th>Confidence</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for pred in student_predictions %}
-                                            <tr>
-                                                <td>{{ pred.created_at|date:"M d, Y" }}</td>
-                                                <td><span class="badge bg-info">{{ pred.predicted_grade }}</span></td>
-                                                <td>{{ pred.confidence_score|floatformat:1 }}%</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endif %}
-                        {% else %}
-                            <p class="text-muted">No profile data available. Please contact your administrator.</p>
-                        {% endif %}
+                            <div class="col-md-3">
+                                <strong>Study Time:</strong> {{ student_profile.study_time|floatformat:1 }} hrs/week
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Current Grade:</strong>
+                                <span class="badge bg-{% if student_profile.current_grade == 'A' or student_profile.current_grade == 'B' %}success{% elif student_profile.current_grade == 'F' %}danger{% else %}info{% endif %}">
+                                    {{ student_profile.current_grade|default:"N/A" }}
+                                </span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Past Failures:</strong> {{ student_profile.failures_past }}
+                            </div>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+
+                {% if student_predictions %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Your Recent Predictions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Predicted Grade</th>
+                                        <th>Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pred in student_predictions %}
+                                    <tr>
+                                        <td>{{ pred.created_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if pred.predicted_grade == 'A' or pred.predicted_grade == 'B' %}success{% elif pred.predicted_grade == 'F' %}danger{% else %}warning{% endif %}">
+                                                {{ pred.predicted_grade }}
+                                            </span>
+                                        </td>
+                                        <td>{{ pred.confidence_score|floatformat:1 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% elif not student_profile %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You haven't made any predictions yet. Click <strong>"Get Your Prediction"</strong> above to get started!
+                </div>
+                {% endif %}
             {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Chart.js Script for Admin -->
-{% if user.role == 'admin' and grade_labels and grade_data %}
+{% if user.is_superuser or user.role == 'admin' or user.role == 'teacher' %}
+{% if grade_labels and grade_data %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const gradeLabels = JSON.parse('{{ grade_labels_json|escapejs }}');
@@ -207,5 +275,6 @@
         });
     }
 </script>
+{% endif %}
 {% endif %}
 {% endblock %}

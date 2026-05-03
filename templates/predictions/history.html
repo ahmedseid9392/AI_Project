@@ -18,7 +18,13 @@
             <tbody>
                 {% for prediction in predictions %}
                 <tr>
-                    <td>{{ prediction.student.first_name }} {{ prediction.student.last_name }}</td>
+                    <td>
+                        {% if prediction.student %}
+                            {{ prediction.student.first_name }} {{ prediction.student.last_name }}
+                        {% else %}
+                            <span class="text-muted"><i>Not Linked</i></span>
+                        {% endif %}
+                    </td>
                     <td>{{ prediction.predicted_grade }}</td>
                     <td>{{ prediction.confidence_score|floatformat:1 }}%</td>
                     <td>{{ prediction.created_at|date:'M d, Y' }}</td>

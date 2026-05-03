@@ -3,36 +3,160 @@
 {% block title %}Prediction Result{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Prediction Result</h4>
-            </div>
-            <div class="card-body">
-                <div class="mb-4">
-                    <h5 class="mb-2">{{ student.first_name }} {{ student.last_name }}</h5>
-                    <p class="mb-1"><strong>Predicted grade:</strong> {{ prediction.predicted_grade }}</p>
-                    <p class="mb-1"><strong>Confidence:</strong> {{ prediction.confidence_score|floatformat:1 }}%</p>
-                    <p class="mb-0"><strong>Predicted score:</strong> {{ prediction.predicted_score|floatformat:1 }}</p>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                {% if prediction.predicted_grade == 'A' %}
+                <div class="card-header bg-success text-white">
+                {% elif prediction.predicted_grade == 'F' %}
+                <div class="card-header bg-danger text-white">
+                {% else %}
+                <div class="card-header bg-info text-white">
+                {% endif %}
+                    <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Prediction Result</h4>
                 </div>
-                <div class="mb-4">
-                    <h6>Feature importance</h6>
-                    <ul class="list-group">
-                        {% for feature, importance in feature_importance.items %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ feature|capfirst|replace:'_',' ' }}
-                            <span class="badge bg-primary">{{ importance|floatformat:2 }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'predictions:history' %}" class="btn btn-outline-secondary">View History</a>
-                    <a href="{% url 'predictions:predict' %}" class="btn btn-primary">Predict Another</a>
+                <div class="card-body">
+                    <!-- Grade Display -->
+                    <div class="text-center mb-4">
+                        <div class="display-1">
+                            {% if prediction.predicted_grade == 'A' %}
+                                <span class="badge bg-success" style="font-size: 3rem;">A</span>
+                                <p class="mt-2 text-success">Excellent Performance!</p>
+                            {% elif prediction.predicted_grade == 'B' %}
+                                <span class="badge bg-info" style="font-size: 3rem;">B</span>
+                                <p class="mt-2 text-info">Good Performance!</p>
+                            {% elif prediction.predicted_grade == 'C' %}
+                                <span class="badge bg-warning" style="font-size: 3rem;">C</span>
+                                <p class="mt-2 text-warning">Average Performance</p>
+                            {% elif prediction.predicted_grade == 'D' %}
+                                <span class="badge bg-warning text-dark" style="font-size: 3rem;">D</span>
+                                <p class="mt-2 text-warning">Below Average</p>
+                            {% else %}
+                                <span class="badge bg-danger" style="font-size: 3rem;">F</span>
+                                <p class="mt-2 text-danger">At Risk / Failing</p>
+                            {% endif %}
+                        </div>
+                        <div class="progress mt-3" style="height: 25px;">
+                            <div class="progress-bar bg-success" 
+                                 role="progressbar" 
+                                 style="width: 0%;"
+                                 data-width="{{ prediction.confidence_score|floatformat:0 }}%">
+                                Confidence: {{ prediction.confidence_score|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Information -->
+                    {% if student %}
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h5><i class="fas fa-user-graduate"></i> Student Information</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Name:</strong> {{ student.first_name }} {{ student.last_name }}</p>
+                                    <p><strong>Student ID:</strong> {{ student.student_id }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Email:</strong> {{ student.email }}</p>
+                                    <p><strong>Current Grade:</strong> {{ student.current_grade|default:"Not set" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- General Input Data -->
+                    {% if input_features %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-clipboard-list"></i> Input Data</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-sm">
+                                <tbody>
+                                    {% for feature, value in input_features.items %}
+                                    <tr>
+                                        <td class="fw-bold bg-light" width="40%">{{ feature }}</td>
+                                        <td>{{ value }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Input Features Analysis -->
+                    {% if feature_comparisons %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-microscope"></i> Input Data Analysis</h5>
+                        <p class="text-muted small">Comparing your inputs against the dataset averages</p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Status vs Average</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for feat in feature_comparisons %}
+                                    <tr>
+                                        <td class="fw-bold">{{ feat.name }}</td>
+                                        <td>
+                                            {% if feat.status == 'high' %}
+                                                <span class="text-success"><i class="fas fa-arrow-up"></i> {{ feat.message }}</span>
+                                            {% elif feat.status == 'low' %}
+                                                <span class="text-danger"><i class="fas fa-arrow-down"></i> {{ feat.message }}</span>
+                                            {% else %}
+                                                <span class="text-secondary"><i class="fas fa-equals"></i> {{ feat.message }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Recommendations -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> Dynamic Recommendations</h6>
+                        <hr>
+                        {% if recommendation_features %}
+                            <p class="mb-2">Based on your input, the following areas are significantly lower than average. Consider focusing on improving these metrics:</p>
+                            <ul>
+                                {% for feat in recommendation_features %}
+                                    <li><strong>{{ feat }}</strong></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="mb-0">✅ You are performing at or above average in all measurable areas! Keep up the good work and maintain your current habits.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'predictions:history' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-history"></i> View History
+                        </a>
+                        <a href="{% url 'predictions:predict' %}" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> New Prediction
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var bars = document.querySelectorAll('.progress-bar[data-width]');
+        bars.forEach(function(bar) {
+            bar.style.width = bar.getAttribute('data-width');
+        });
+    });
+</script>
 {% endblock %}
