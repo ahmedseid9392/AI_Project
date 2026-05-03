@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Prediction Result{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Prediction Result</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5 class="mb-2">{{ student.first_name }} {{ student.last_name }}</h5>
+                    <p class="mb-1"><strong>Predicted grade:</strong> {{ prediction.predicted_grade }}</p>
+                    <p class="mb-1"><strong>Confidence:</strong> {{ prediction.confidence_score|floatformat:1 }}%</p>
+                    <p class="mb-0"><strong>Predicted score:</strong> {{ prediction.predicted_score|floatformat:1 }}</p>
+                </div>
+                <div class="mb-4">
+                    <h6>Feature importance</h6>
+                    <ul class="list-group">
+                        {% for feature, importance in feature_importance.items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ feature|capfirst|replace:'_',' ' }}
+                            <span class="badge bg-primary">{{ importance|floatformat:2 }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'predictions:history' %}" class="btn btn-outline-secondary">View History</a>
+                    <a href="{% url 'predictions:predict' %}" class="btn btn-primary">Predict Another</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

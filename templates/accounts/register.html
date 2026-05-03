@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center min-vh-75">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-primary text-white py-4 text-center">
+                <h3 class="mb-1">Create Your Account</h3>
+                <p class="mb-0 text-white-75">Secure access to the student performance dashboard.</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid mt-3">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3">
+                <small class="text-muted">Already have an account? <a href="{% url 'accounts:login' %}">Login here</a>.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Info{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Prediction Model Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p><strong>Model trained:</strong> {{ is_trained|yesno:"Yes,No" }}</p>
+                    <p><strong>Total predictions:</strong> {{ total_predictions }}</p>
+                    <p><strong>Average confidence:</strong> {{ avg_confidence|default:"N/A"|floatformat:1 }}%</p>
+                    <p><strong>Students with grades:</strong> {{ students_with_grades }}</p>
+                </div>
+                {% if feature_importance %}
+                <div class="mb-4">
+                    <h5>Feature importance</h5>
+                    <ul class="list-group">
+                        {% for feature, importance in feature_importance.items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ feature|capfirst|replace:'_',' ' }}
+                            <span class="badge bg-info">{{ importance|floatformat:2 }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    The model is not trained yet. Use a prediction or the training command to create the model.
+                </div>
+                {% endif %}
+                {% if user.is_superuser or user.role == 'admin' %}
+                <form method="post" action="{% url 'predictions:retrain_model' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Retrain Model</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
