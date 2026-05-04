@@ -66,6 +66,6 @@ class Student(models.Model):
             return 'F'
     
     def save(self, *args, **kwargs):
-        if self.final_score:
+        if self.final_score is not None:
             self.current_grade = self.calculate_performance_label()
         super().save(*args, **kwargs)

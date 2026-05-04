@@ -18,6 +18,10 @@
                     <dt class="col-sm-3">Role</dt>
                     <dd class="col-sm-9">{{ user.role|default:'N/A' }}</dd>
                 </dl>
+                
+                <div class="mt-4">
+                    <a href="{% url 'accounts:password_change' %}" class="btn btn-primary">Change Password</a>
+                </div>
             </div>
         </div>
     </div>
