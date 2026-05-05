@@ -39,6 +39,14 @@
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
+                        <div class="card text-white bg-secondary">
+                            <div class="card-body">
+                                <h5 class="card-title">Average Predicted Score</h5>
+                                <h2 class="mb-0">{{ avg_predicted_score|default:"N/A" }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <div class="card text-white bg-warning">
                             <div class="card-body">
                                 <h5 class="card-title">At Risk Students</h5>
@@ -193,6 +201,28 @@
                             </div>
                             <div class="col-md-3">
                                 <strong>Past Failures:</strong> {{ student_profile.failures_past }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if latest_prediction %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-lightbulb me-2"></i>Last Prediction Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <strong>Last Score:</strong> {{ latest_prediction.predicted_score|floatformat:1 }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Confidence:</strong> {{ latest_prediction.confidence_score|floatformat:1 }}%
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Recommendation:</strong>
+                                <p class="mb-0">{{ latest_recommendation|default:"No recommendation available." }}</p>
                             </div>
                         </div>
                     </div>

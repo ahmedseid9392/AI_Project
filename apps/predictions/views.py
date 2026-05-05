@@ -2,7 +2,7 @@
 import json
 import pandas as pd
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
@@ -53,7 +53,7 @@ def predict_student(request):
                     predicted_by=user,
                     input_features=features,
                     predicted_grade=prediction_result['predicted_grade'],
-                    predicted_score=prediction_result['confidence'],
+                    predicted_score=prediction_result['predicted_score'],
                     confidence_score=prediction_result['confidence'],
                     feature_importance=performance_model.get_feature_importance()
                 )
@@ -63,31 +63,30 @@ def predict_student(request):
                 raw_importance = performance_model.get_feature_importance()
                 display_importance = {k.replace('_', ' ').title(): v * 100 for k, v in raw_importance.items()}
 
-                # Calculate feature comparisons (High/Low vs Average)
-                feature_stats = performance_model.get_feature_stats()
                 feature_comparisons = []
-                recommendations = []
+                recommendation_messages = performance_model.generate_recommendations(features)
+                feature_stats = performance_model.get_feature_stats()
 
                 for feat_name, user_val in features.items():
-                    if feat_name in feature_stats and isinstance(user_val, (int, float)):
+                    if feat_name in feature_stats:
                         stats = feature_stats[feat_name]
                         mean_val = stats.get('mean', 0)
-                        
-                        # Define threshold for "significantly" higher or lower (e.g. 10% diff)
-                        # Or just strictly > mean and < mean. Let's use strict > mean
                         display_name = feat_name.replace('_', ' ').title()
-                        
-                        if user_val > mean_val * 1.1:
-                            status = 'high'
-                            msg = f"Higher than average ({user_val} vs avg {mean_val:.1f})"
-                        elif user_val < mean_val * 0.9:
-                            status = 'low'
-                            msg = f"Lower than average ({user_val} vs avg {mean_val:.1f})"
-                            recommendations.append(display_name)
+
+                        if isinstance(user_val, (int, float)):
+                            if user_val > mean_val * 1.1:
+                                status = 'high'
+                                msg = f"Higher than average ({user_val} vs avg {mean_val:.1f})"
+                            elif user_val < mean_val * 0.9:
+                                status = 'low'
+                                msg = f"Lower than average ({user_val} vs avg {mean_val:.1f})"
+                            else:
+                                status = 'average'
+                                msg = f"Average ({user_val})"
                         else:
                             status = 'average'
-                            msg = f"Average ({user_val})"
-                            
+                            msg = f"{user_val}"
+
                         feature_comparisons.append({
                             'name': display_name,
                             'status': status,
@@ -100,7 +99,7 @@ def predict_student(request):
                     'feature_importance': display_importance,
                     'input_features': {k.replace('_', ' ').title(): v for k, v in features.items()},
                     'feature_comparisons': feature_comparisons,
-                    'recommendation_features': recommendations,
+                    'recommendation_messages': recommendation_messages,
                 }
 
                 messages.success(request, f'Prediction completed! Predicted grade: {prediction_result["predicted_grade"]}')
@@ -131,11 +130,38 @@ def prediction_history(request):
             # Also show predictions made by this user even without student profile
             predictions = Prediction.objects.filter(predicted_by=request.user)
 
+    history_entries = []
+    for prediction in predictions:
+        recs = performance_model.generate_recommendations(prediction.input_features)
+        recommendation_summary = recs[0]['message'] if recs else ''
+        display_name = prediction.input_features.get('student_name')
+        if not display_name and prediction.student:
+            display_name = prediction.student.get_full_name() or f'{prediction.student.first_name} {prediction.student.last_name}'
+        history_entries.append({
+            'prediction': prediction,
+            'display_name': display_name or 'Not linked',
+            'recommendation_summary': recommendation_summary,
+        })
+
     context = {
-        'predictions': predictions,
+        'history_entries': history_entries,
         'total_predictions': predictions.count(),
     }
     return render(request, 'predictions/history.html', context)
+
+
+@login_required
+def delete_prediction(request, pk):
+    prediction = get_object_or_404(Prediction, pk=pk)
+    user = request.user
+    allowed = user.is_superuser or getattr(user, 'role', None) in ['admin', 'teacher'] or prediction.predicted_by == user
+    if not allowed:
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        prediction.delete()
+        messages.success(request, 'Prediction deleted successfully.')
+    return redirect('predictions:history')
 
 
 @login_required
