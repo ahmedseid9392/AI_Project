@@ -11,27 +11,36 @@
                 <tr>
                     <th>Student</th>
                     <th>Grade</th>
+                    <th>Score</th>
                     <th>Confidence</th>
+                    <th>Recommendation</th>
                     <th>Date</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
-                {% for prediction in predictions %}
+                {% for entry in history_entries %}
                 <tr>
+                    <td>{{ entry.display_name }}</td>
+                    <td>{{ entry.prediction.predicted_grade }}</td>
+                    <td>{{ entry.prediction.predicted_score|floatformat:1 }}</td>
+                    <td>{{ entry.prediction.confidence_score|floatformat:1 }}%</td>
+                    <td>{{ entry.recommendation_summary|default:'No specific recommendation' }}</td>
+                    <td>{{ entry.prediction.created_at|date:'M d, Y' }}</td>
                     <td>
-                        {% if prediction.student %}
-                            {{ prediction.student.first_name }} {{ prediction.student.last_name }}
-                        {% else %}
-                            <span class="text-muted"><i>Not Linked</i></span>
+                        {% if user.is_superuser or user.role == 'admin' or user.role == 'teacher' or entry.prediction.predicted_by == user %}
+                        <form method="post" action="{% url 'predictions:delete_prediction' entry.prediction.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link btn-sm text-danger p-0" title="Delete prediction">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
                         {% endif %}
                     </td>
-                    <td>{{ prediction.predicted_grade }}</td>
-                    <td>{{ prediction.confidence_score|floatformat:1 }}%</td>
-                    <td>{{ prediction.created_at|date:'M d, Y' }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center">No prediction history yet.</td>
+                    <td colspan="7" class="text-center">No prediction history yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

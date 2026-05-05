@@ -2,10 +2,11 @@ import json
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Avg
 
 from apps.students.models import Student
 from apps.predictions.models import Prediction
+from apps.predictions.ml_model import performance_model
 
 
 @login_required
@@ -34,12 +35,14 @@ def dashboard(request):
         )
         grade_labels = [item['current_grade'] for item in grade_distribution]
         grade_data = [item['count'] for item in grade_distribution]
-        recent_predictions = Prediction.objects.select_related('student').all()[:5]
+        recent_predictions = Prediction.objects.select_related('student').order_by('-created_at')[:5]
+        avg_predicted_score = Prediction.objects.aggregate(avg_score=Avg('predicted_score'))['avg_score']
 
         context.update({
             'total_students': total_students,
             'total_predictions': total_predictions,
             'model_accuracy': model_accuracy,
+            'avg_predicted_score': round(avg_predicted_score, 1) if avg_predicted_score is not None else None,
             'at_risk_students': at_risk_students,
             'grade_labels': grade_labels,
             'grade_data': grade_data,
@@ -57,9 +60,17 @@ def dashboard(request):
         except Student.DoesNotExist:
             pass
 
+        latest_prediction = student_predictions[0] if student_predictions else None
+        latest_recommendation = ''
+        if latest_prediction:
+            recs = performance_model.generate_recommendations(latest_prediction.input_features)
+            latest_recommendation = recs[0]['message'] if recs else ''
+
         context.update({
             'student_profile': student_profile,
             'student_predictions': student_predictions,
+            'latest_prediction': latest_prediction,
+            'latest_recommendation': latest_recommendation,
         })
 
     return render(request, 'dashboard.html', context)

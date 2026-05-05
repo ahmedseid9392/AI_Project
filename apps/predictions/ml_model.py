@@ -193,7 +193,7 @@ class StudentPerformanceModel:
         # Calculate feature statistics for dynamic recommendations
         feature_stats = {}
         for col in usable_features:
-            if column_types.get(col) == 'numeric':
+            if column_types.get(col) in ('numeric', 'boolean'):
                 feature_stats[col] = {
                     'min': float(X[col].min()),
                     'max': float(X[col].max()),
@@ -235,12 +235,46 @@ class StudentPerformanceModel:
         prediction = self.model.predict(features_scaled)[0]
         probabilities = self.model.predict_proba(features_scaled)[0]
         confidence = max(probabilities) * 100
+        predicted_score = self._estimate_score_from_probabilities(self.model.classes_, probabilities)
 
         return {
             'predicted_grade': str(prediction),
+            'predicted_score': predicted_score,
             'confidence': confidence,
             'probabilities': {str(k): float(v) for k, v in zip(self.model.classes_, probabilities)}
         }
+
+    def _grade_to_score(self, grade_label):
+        """Convert a grade label into an estimated numeric score."""
+        grade_map = {
+            'A': 95.0,
+            'B': 85.0,
+            'C': 75.0,
+            'D': 60.0,
+            'F': 45.0,
+        }
+        if isinstance(grade_label, str):
+            normalized = grade_label.strip().upper()
+            if normalized in grade_map:
+                return grade_map[normalized]
+            try:
+                return float(normalized)
+            except ValueError:
+                return 0.0
+        try:
+            return float(grade_label)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _estimate_score_from_probabilities(self, classes, probabilities):
+        """Estimate a final numeric score from predicted class probabilities."""
+        score_sum = 0.0
+        total_weight = 0.0
+        for label, prob in zip(classes, probabilities):
+            score_value = self._grade_to_score(label)
+            score_sum += score_value * prob
+            total_weight += prob
+        return score_sum / total_weight if total_weight else 0.0
 
     def get_feature_importance(self):
         """Get feature importance from trained model."""
@@ -262,6 +296,95 @@ class StudentPerformanceModel:
             if config:
                 self.feature_names = config['feature_names']
         return self.feature_names
+
+    def _friendly_feature_label(self, feature_name):
+        return feature_name.replace('_', ' ').replace('-', ' ').title()
+
+    def _recommendation_text(self, feature_name, display_name):
+        feature_key = feature_name.lower()
+        if 'attendance' in feature_key:
+            return f'Improve {display_name} by attending classes regularly and reducing absences.'
+        if 'study_hours' in feature_key or 'study time' in feature_key:
+            return f'Increase {display_name} and keep a consistent study schedule.'
+        if 'internet' in feature_key:
+            return f'Ensure reliable {display_name} so you can access learning resources consistently.'
+        if 'previous' in feature_key or 'grade' in feature_key:
+            return f'Review past work in {display_name} to strengthen foundational knowledge.'
+        if 'fail' in feature_key:
+            return f'Address past difficulties indicated by {display_name} with extra practice or tutoring.'
+        if 'family' in feature_key or 'support' in feature_key:
+            return f'Increase {display_name} through family or mentor support to improve study habits.'
+        if 'extra' in feature_key or 'activities' in feature_key:
+            return f'Participate in more {display_name} to build confidence and reduce stress.'
+        if 'travel' in feature_key:
+            return f'Manage {display_name} so it interferes less with study time and class attendance.'
+        if 'parent' in feature_key:
+            return f'Use {display_name} support by talking with guardians about study planning.'
+        if 'math' in feature_key:
+            return f'Spend extra time practicing {display_name} concepts and solving problems.'
+        if 'science' in feature_key:
+            return f'Work on {display_name} through experiments, summaries, and review sessions.'
+        if 'english' in feature_key or 'reading' in feature_key:
+            return f'Read more and practice writing to improve {display_name} comprehension and scores.'
+        return f'Focus on improving {display_name} to support better overall performance.'
+
+    def generate_recommendations(self, features, max_recommendations=5):
+        """Generate personalized intervention recommendations for a prediction."""
+        if self.model is None:
+            self.load_model()
+
+        config = self._load_config()
+        if config is None:
+            return []
+
+        column_types = config.get('column_types', {})
+        feature_stats = self.get_feature_stats()
+        importance = self.get_feature_importance()
+
+        recommendations = []
+        for feature, raw_value in features.items():
+            if feature not in importance:
+                continue
+
+            display_name = self._friendly_feature_label(feature)
+            feature_type = column_types.get(feature, 'numeric')
+            importance_score = importance.get(feature, 0)
+
+            try:
+                value = float(raw_value)
+            except (TypeError, ValueError):
+                if feature_type == 'boolean':
+                    value = int(bool(raw_value))
+                else:
+                    value = None
+
+            stats = feature_stats.get(feature, {})
+            mean_val = stats.get('mean')
+
+            if value is None or mean_val is None:
+                continue
+
+            if feature_type == 'boolean':
+                if value == 0 and mean_val >= 0.5:
+                    severity = 1.0
+                else:
+                    continue
+            else:
+                if mean_val == 0:
+                    continue
+                if value >= mean_val * 0.9:
+                    continue
+                severity = (mean_val - value) / max(mean_val, 1)
+
+            recommendations.append({
+                'feature': display_name,
+                'message': self._recommendation_text(feature, display_name),
+                'priority': importance_score * severity,
+                'importance': importance_score,
+            })
+
+        recommendations.sort(key=lambda item: item['priority'], reverse=True)
+        return recommendations[:max_recommendations]
 
     def get_column_types(self):
         """Get column types from config."""

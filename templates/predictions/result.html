@@ -37,6 +37,10 @@
                                 <p class="mt-2 text-danger">At Risk / Failing</p>
                             {% endif %}
                         </div>
+                        <div class="mt-3">
+                            <h5 class="mb-1">Predicted Final Score</h5>
+                            <p class="lead mb-0">{{ prediction.predicted_score|floatformat:1 }} / 100</p>
+                        </div>
                         <div class="progress mt-3" style="height: 25px;">
                             <div class="progress-bar bg-success" 
                                  role="progressbar" 
@@ -122,17 +126,17 @@
 
                     <!-- Recommendations -->
                     <div class="alert alert-info">
-                        <h6><i class="fas fa-lightbulb"></i> Dynamic Recommendations</h6>
+                        <h6><i class="fas fa-lightbulb"></i> Personalized Recommendations</h6>
                         <hr>
-                        {% if recommendation_features %}
-                            <p class="mb-2">Based on your input, the following areas are significantly lower than average. Consider focusing on improving these metrics:</p>
+                        {% if recommendation_messages %}
+                            <p class="mb-2">Based on the prediction and your inputs, these actions may help improve expected performance:</p>
                             <ul>
-                                {% for feat in recommendation_features %}
-                                    <li><strong>{{ feat }}</strong></li>
+                                {% for rec in recommendation_messages %}
+                                    <li><strong>{{ rec.feature }}:</strong> {{ rec.message }}</li>
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <p class="mb-0">✅ You are performing at or above average in all measurable areas! Keep up the good work and maintain your current habits.</p>
+                            <p class="mb-0">✅ Your current inputs are close to or above dataset averages in critical areas. Keep maintaining good study habits.</p>
                         {% endif %}
                     </div>
 
