@@ -9,9 +9,32 @@ from django.contrib import messages
 from django.db.models import Avg
 
 from apps.students.models import Student
+from apps.students.utils import registered_student_queryset
 from apps.predictions.models import Prediction, DatasetConfig
-from apps.predictions.forms import build_dynamic_prediction_form, TargetColumnForm
+from apps.predictions.forms import EXCLUDED_INPUT_FIELDS, build_dynamic_prediction_form, TargetColumnForm
 from apps.predictions.ml_model import performance_model
+
+
+def _populate_hidden_prediction_features(features, user, student_obj=None):
+    populated_features = dict(features)
+    feature_names = performance_model.get_feature_names()
+
+    for feature_name in feature_names:
+        lower_name = feature_name.lower()
+        if lower_name not in EXCLUDED_INPUT_FIELDS or feature_name in populated_features:
+            continue
+
+        if lower_name == 'student_id':
+            populated_features[feature_name] = student_obj.student_id if student_obj else user.username
+        elif lower_name in {'name', 'full_name', 'student_name'}:
+            if student_obj:
+                populated_features[feature_name] = student_obj.get_full_name()
+            else:
+                populated_features[feature_name] = user.get_full_name() or user.username
+        else:
+            populated_features[feature_name] = ''
+
+    return populated_features
 
 
 @login_required
@@ -45,6 +68,7 @@ def predict_student(request):
                     pass
 
             try:
+                features = _populate_hidden_prediction_features(features, user, student_obj)
                 prediction_result = performance_model.predict(features)
 
                 # Save prediction
@@ -154,7 +178,7 @@ def prediction_history(request):
 def delete_prediction(request, pk):
     prediction = get_object_or_404(Prediction, pk=pk)
     user = request.user
-    allowed = user.is_superuser or getattr(user, 'role', None) in ['admin', 'teacher'] or prediction.predicted_by == user
+    allowed = user.is_superuser or getattr(user, 'role', None) in ['admin', 'teacher']
     if not allowed:
         raise PermissionDenied
 
@@ -213,6 +237,65 @@ def upload_dataset(request):
                     uploaded_by=request.user,
                 )
 
+                # Import student records from the dataset into the Student database table
+                imported_count = 0
+                for index, row in df.iterrows():
+                    try:
+                        # Use student_id from CSV if exists, otherwise generate one
+                        s_id = str(row.get('student_id', row.get('id', f'STU-{1000 + index}')))
+                        
+                        # Handle name parsing (Full Name vs First/Last columns)
+                        csv_name = str(row.get('name', row.get('full_name', '')))
+                        f_name = str(row.get('first_name', ''))
+                        l_name = str(row.get('last_name', ''))
+                        
+                        if csv_name and not (f_name or l_name):
+                            parts = csv_name.split(' ', 1)
+                            f_name = parts[0]
+                            l_name = parts[1] if len(parts) > 1 else 'Student'
+
+                        # Map dataset columns to Student model fields with sensible defaults
+                        student_data = {
+                            'first_name': f_name or str(row.get('first_name', 'Student')),
+                            'last_name': l_name or str(row.get('last_name', f'User_{index}')),
+                            'email': str(row.get('email', f'student_{index}@example.com')),
+                            'attendance_percentage': float(row.get('attendance', row.get('attendance_percentage', 0))),
+                            'previous_grade': float(row.get('previous_grade', row.get('prev_grade', 0))),
+                            'study_time': float(row.get('study_time', row.get('study_hours', 0))),
+                            'failures_past': int(row.get('failures', row.get('failures_past', 0))),
+                            'family_support': int(row.get('family_support', 0)),
+                            'parent_education_level': int(row.get('parent_education', 0)),
+                        }
+
+                        # Logic for boolean fields that might be strings like 'yes'/'no' in CSV
+                        for field in ['internet_access_at_home', 'extracurricular_activities']:
+                            val = row.get(field, row.get(field.split('_')[0], None))
+                            if val is not None:
+                                if isinstance(val, str):
+                                    student_data[field] = val.lower() in ('yes', 'true', '1', 'y')
+                                else:
+                                    student_data[field] = bool(val)
+
+                        # Map the target column (the grade/score from CSV) to Student record
+                        try:
+                            target_val = row.get(target_col)
+                            student_data['final_score'] = float(target_val)
+                            # Automatically assign a grade label based on score for the list view
+                            if student_data['final_score'] >= 85: student_data['current_grade'] = 'A'
+                            elif student_data['final_score'] >= 70: student_data['current_grade'] = 'B'
+                            elif student_data['final_score'] >= 55: student_data['current_grade'] = 'C'
+                            elif student_data['final_score'] >= 40: student_data['current_grade'] = 'D'
+                            else: student_data['current_grade'] = 'F'
+                        except (ValueError, TypeError):
+                            # If target is already a letter grade
+                            if isinstance(target_val, str) and target_val.strip().upper() in ['A', 'B', 'C', 'D', 'F']:
+                                student_data['current_grade'] = target_val.strip().upper()
+
+                        Student.objects.update_or_create(student_id=s_id, defaults=student_data)
+                        imported_count += 1
+                    except Exception:
+                        continue # Skip rows that have incompatible data types
+
                 # Clean up
                 if os.path.exists(csv_path):
                     os.remove(csv_path)
@@ -221,8 +304,8 @@ def upload_dataset(request):
 
                 messages.success(
                     request,
-                    f'Dataset loaded ({len(df)} records, {len(feature_cols)} features) '
-                    f'and model trained! Accuracy: {accuracy:.2%}'
+                    f'Model trained (Accuracy: {accuracy:.2%}) and {imported_count} students '
+                    f'have been imported/updated in the system records.'
                 )
                 return redirect('predictions:model_info')
             else:
@@ -297,6 +380,7 @@ def model_info(request):
     feature_importance = None
     feature_names = []
     dataset_config = DatasetConfig.get_active()
+    registered_students = registered_student_queryset()
 
     if is_trained:
         performance_model.load_model()
@@ -306,6 +390,7 @@ def model_info(request):
 
     total_predictions = Prediction.objects.count()
     avg_confidence = Prediction.objects.aggregate(Avg('confidence_score'))['confidence_score__avg']
+    students_with_grades = registered_students.exclude(final_score__isnull=True).count()
 
     context = {
         'is_trained': is_trained,
@@ -313,7 +398,8 @@ def model_info(request):
         'feature_names': feature_names,
         'total_predictions': total_predictions,
         'avg_confidence': avg_confidence,
-        'total_students': Student.objects.count(),
+        'total_students': registered_students.count(),
+        'students_with_grades': students_with_grades,
         'dataset_config': dataset_config,
     }
     return render(request, 'predictions/model_info.html', context)

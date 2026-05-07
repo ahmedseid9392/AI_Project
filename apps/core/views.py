@@ -1,12 +1,20 @@
 import json
 
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg
 
 from apps.students.models import Student
+from apps.students.utils import ensure_student_profile_for_user, registered_student_queryset
 from apps.predictions.models import Prediction
 from apps.predictions.ml_model import performance_model
+
+
+def home(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    return render(request, 'landing.html')
 
 
 @login_required
@@ -18,7 +26,8 @@ def dashboard(request):
 
     if is_staff:
         # Admin/Teacher dashboard — full stats
-        total_students = Student.objects.count()
+        registered_students = registered_student_queryset()
+        total_students = registered_students.count()
         total_predictions = Prediction.objects.count()
         evaluated_predictions = Prediction.objects.filter(is_accurate__isnull=False)
         model_accuracy = None
@@ -26,9 +35,9 @@ def dashboard(request):
             accurate_count = evaluated_predictions.filter(is_accurate=True).count()
             model_accuracy = round((accurate_count / evaluated_predictions.count()) * 100, 1)
 
-        at_risk_students = Student.objects.filter(current_grade__in=['D', 'F']).count()
+        at_risk_students = registered_students.filter(current_grade__in=['D', 'F']).count()
         grade_distribution = (
-            Student.objects.exclude(current_grade__isnull=True)
+            registered_students.exclude(current_grade__isnull=True)
             .values('current_grade')
             .annotate(count=Count('id'))
             .order_by('current_grade')
@@ -55,6 +64,7 @@ def dashboard(request):
         student_profile = None
         student_predictions = []
         try:
+            ensure_student_profile_for_user(user)
             student_profile = Student.objects.get(user=user)
             student_predictions = Prediction.objects.filter(student=student_profile)[:5]
         except Student.DoesNotExist:

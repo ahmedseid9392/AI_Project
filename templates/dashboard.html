@@ -17,7 +17,7 @@
                     <div class="col-md-3 mb-3">
                         <div class="card text-white bg-primary">
                             <div class="card-body">
-                                <h5 class="card-title">Total Students</h5>
+                                <h5 class="card-title">Registered Students</h5>
                                 <h2 class="mb-0">{{ total_students|default:0 }}</h2>
                             </div>
                         </div>
@@ -286,7 +286,7 @@
             data: {
                 labels: gradeLabels,
                 datasets: [{
-                    label: 'Number of Students',
+                    label: 'Registered Students',
                     data: gradeData,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                     borderColor: 'rgba(54, 162, 235, 1)',

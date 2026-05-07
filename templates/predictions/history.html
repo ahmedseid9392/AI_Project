@@ -28,7 +28,7 @@
                     <td>{{ entry.recommendation_summary|default:'No specific recommendation' }}</td>
                     <td>{{ entry.prediction.created_at|date:'M d, Y' }}</td>
                     <td>
-                        {% if user.is_superuser or user.role == 'admin' or user.role == 'teacher' or entry.prediction.predicted_by == user %}
+                        {% if user.is_superuser or user.role == 'admin' or user.role == 'teacher' %}
                         <form method="post" action="{% url 'predictions:delete_prediction' entry.prediction.id %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-link btn-sm text-danger p-0" title="Delete prediction">
