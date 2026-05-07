@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Performance Prediction System{% endblock %}
+
+{% block content %}
+<style>
+    .landing-shell {
+        margin-top: -1.5rem;
+    }
+    .hero-panel {
+        background:
+            radial-gradient(circle at top right, rgba(255, 193, 7, 0.24), transparent 26%),
+            radial-gradient(circle at left center, rgba(13, 110, 253, 0.22), transparent 30%),
+            linear-gradient(135deg, #0b1f3a 0%, #123768 52%, #1f6fb2 100%);
+        border-radius: 28px;
+        color: #fff;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 24px 60px rgba(11, 31, 58, 0.22);
+    }
+    .hero-panel::after {
+        content: "";
+        position: absolute;
+        inset: auto -8% -28% auto;
+        width: 340px;
+        height: 340px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        filter: blur(8px);
+    }
+    .hero-copy {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .45rem .9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        font-size: .9rem;
+        letter-spacing: .02em;
+    }
+    .hero-title {
+        font-size: clamp(2.3rem, 5vw, 4.2rem);
+        line-height: 1.03;
+        font-weight: 800;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    .hero-lead {
+        font-size: 1.08rem;
+        max-width: 640px;
+        color: rgba(255, 255, 255, 0.86);
+    }
+    .hero-stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        backdrop-filter: blur(4px);
+        min-height: 100%;
+    }
+    .hero-stat-card strong {
+        display: block;
+        font-size: 1.6rem;
+        line-height: 1;
+        margin-bottom: .35rem;
+    }
+    .section-card {
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 16px 40px rgba(13, 24, 39, 0.08);
+    }
+    .feature-icon {
+        width: 54px;
+        height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #d8ecff, #fff6d8);
+        color: #0d6efd;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+    }
+    .step-badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #0d6efd;
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    .audience-card {
+        border-radius: 20px;
+        border: 1px solid #e9eef5;
+        background: #fff;
+        height: 100%;
+    }
+    .cta-panel {
+        border-radius: 24px;
+        background: linear-gradient(135deg, #fff7df 0%, #eef6ff 100%);
+        border: 1px solid #e6edf8;
+    }
+</style>
+
+<div class="landing-shell">
+    <section class="hero-panel p-4 p-md-5 mb-5">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7 hero-copy">
+                <span class="hero-chip">
+                    <i class="fas fa-brain"></i>
+                    AI-assisted academic insight
+                </span>
+                <h1 class="hero-title">Predict student performance before small risks become big problems.</h1>
+                <p class="hero-lead">
+                    Student Performance Prediction System helps schools organize student records, train a prediction model from academic data, and generate performance forecasts with actionable recommendations for earlier support.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-4">
+                    <a href="{% url 'accounts:login' %}" class="btn btn-warning btn-lg px-4">Login</a>
+                    <a href="{% url 'accounts:register' %}" class="btn btn-outline-light btn-lg px-4">Create Account</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <strong>Role-Based</strong>
+                            <span>Separate flows for admins, teachers, and students.</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <strong>ML Ready</strong>
+                            <span>Upload a dataset, train a model, and start predicting.</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <strong>Trackable</strong>
+                            <span>Store prediction history and review confidence over time.</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <strong>Actionable</strong>
+                            <span>Turn performance signals into practical recommendations.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">What This Project Does</h2>
+            <p class="text-muted mb-0">A single platform for student data, prediction workflows, and intervention planning.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card section-card h-100">
+                    <div class="card-body p-4">
+                        <div class="feature-icon"><i class="fas fa-database"></i></div>
+                        <h4>Centralize Student Records</h4>
+                        <p class="text-muted mb-0">Maintain registered student profiles with academic and behavioral indicators in one place for easier review and monitoring.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card section-card h-100">
+                    <div class="card-body p-4">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h4>Generate Predictions</h4>
+                        <p class="text-muted mb-0">Use trained machine learning models to estimate likely grades, scores, and confidence levels from current student inputs.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card section-card h-100">
+                    <div class="card-body p-4">
+                        <div class="feature-icon"><i class="fas fa-lightbulb"></i></div>
+                        <h4>Support Better Decisions</h4>
+                        <p class="text-muted mb-0">Surface recommendations that help teachers and students focus on attendance, study behavior, and other meaningful performance drivers.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="row g-4 align-items-stretch">
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-body p-4 p-lg-5">
+                        <h2 class="fw-bold mb-4">How It Works</h2>
+                        <div class="row g-4">
+                            <div class="col-sm-6">
+                                <div class="step-badge">1</div>
+                                <h5>Register Users</h5>
+                                <p class="text-muted mb-0">Create accounts for students, teachers, and administrators with role-based access.</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="step-badge">2</div>
+                                <h5>Upload Training Data</h5>
+                                <p class="text-muted mb-0">Admins upload CSV datasets, choose the target column, and train the prediction model.</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="step-badge">3</div>
+                                <h5>Predict Performance</h5>
+                                <p class="text-muted mb-0">Students or staff enter current learning indicators and receive predicted outcomes.</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="step-badge">4</div>
+                                <h5>Review History</h5>
+                                <p class="text-muted mb-0">Keep a record of predictions to compare results, confidence, and follow-up actions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-body p-4 p-lg-5">
+                        <h2 class="fw-bold mb-4">Who It Helps</h2>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="audience-card p-4">
+                                    <h5>Administrators</h5>
+                                    <p class="text-muted mb-0">Manage users, upload datasets, monitor dashboard summaries, and oversee model readiness.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="audience-card p-4">
+                                    <h5>Teachers</h5>
+                                    <p class="text-muted mb-0">Review registered students, create predictions, and identify learners who may need support.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="audience-card p-4">
+                                    <h5>Students</h5>
+                                    <p class="text-muted mb-0">Check personal prediction history, understand performance trends, and act on recommendations for improvement.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-panel p-4 p-md-5 mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <h2 class="fw-bold mb-2">A stronger starting point for academic intervention.</h2>
+                <p class="text-muted mb-0">This project combines data management, prediction, and follow-up insight in one workflow so teams can move from raw records to informed action faster.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg px-4 me-2">Get Started</a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

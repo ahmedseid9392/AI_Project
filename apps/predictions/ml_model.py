@@ -1,11 +1,6 @@
 # apps/predictions/ml_model.py
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.utils.multiclass import type_of_target
 import joblib
 import os
 import json
@@ -13,9 +8,11 @@ from django.conf import settings
 
 
 class StudentPerformanceModel:
+    EXCLUDED_FEATURE_FIELDS = {'student_id', 'id', 'name', 'full_name', 'student_name'}
+
     def __init__(self):
         self.model = None
-        self.scaler = StandardScaler()
+        self.scaler = None
         self.label_encoders = {}  # For categorical features
         self.feature_names = []
         self.target_column = None
@@ -25,6 +22,16 @@ class StudentPerformanceModel:
         self.scaler_path = os.path.join(self.model_dir, 'scaler.pkl')
         self.config_path = os.path.join(self.model_dir, 'model_config.json')
         self.encoders_path = os.path.join(self.model_dir, 'label_encoders.pkl')
+
+    def _create_scaler(self):
+        from sklearn.preprocessing import StandardScaler
+
+        return StandardScaler()
+
+    def _create_label_encoder(self):
+        from sklearn.preprocessing import LabelEncoder
+
+        return LabelEncoder()
 
     def _save_config(self, feature_names, target_column, column_types, feature_stats=None):
         """Save model configuration to disk."""
@@ -81,6 +88,9 @@ class StudentPerformanceModel:
                 column_types[col] = 'numeric'
         return column_types
 
+    def _is_excluded_feature(self, column_name):
+        return column_name.lower() in self.EXCLUDED_FEATURE_FIELDS
+
     def _prepare_features(self, df, feature_names, column_types, fit=False):
         """Prepare features for the model — encode categoricals, convert booleans."""
         df_prepared = pd.DataFrame()
@@ -95,7 +105,7 @@ class StudentPerformanceModel:
                 df_prepared[col] = df[col].astype(int)
             elif col_type == 'categorical':
                 if fit:
-                    le = LabelEncoder()
+                    le = self._create_label_encoder()
                     df_prepared[col] = le.fit_transform(df[col].astype(str))
                     self.label_encoders[col] = le
                 else:
@@ -114,6 +124,10 @@ class StudentPerformanceModel:
 
     def train_model(self, data=None, feature_names=None, target_column=None, column_types=None):
         """Train the model dynamically based on the uploaded data columns."""
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.metrics import accuracy_score, classification_report
+        from sklearn.model_selection import train_test_split
+        from sklearn.utils.multiclass import type_of_target
 
         if data is None:
             data = self._generate_sample_data()
@@ -134,10 +148,12 @@ class StudentPerformanceModel:
         usable_features = [
             col for col in feature_names
             if column_types.get(col) in ('numeric', 'boolean', 'categorical')
+            and not self._is_excluded_feature(col)
         ]
 
         self.feature_names = usable_features
         self.target_column = target_column
+        self.scaler = self._create_scaler()
 
         # Prepare features
         X = self._prepare_features(data, usable_features, column_types, fit=True)

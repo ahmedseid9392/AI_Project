@@ -1,133 +1,68 @@
 {% extends 'base.html' %}
 
-{% block title %}Student Information{% endblock %}
+{% block title %}Registered Students{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>Student Information Database</h4>
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>Registered Students</h4>
+                    <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} Total</span>
                 </div>
                 <div class="card-body">
-                    <form method="get" class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <input type="search" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by ID, name, or email">
-                        </div>
-                        <div class="col-md-2">
-                            <select name="grade" class="form-select">
-                                <option value="">All Grades</option>
-                                <option value="A" {% if selected_grade == 'A' %}selected{% endif %}>A</option>
-                                <option value="B" {% if selected_grade == 'B' %}selected{% endif %}>B</option>
-                                <option value="C" {% if selected_grade == 'C' %}selected{% endif %}>C</option>
-                                <option value="D" {% if selected_grade == 'D' %}selected{% endif %}>D</option>
-                                <option value="F" {% if selected_grade == 'F' %}selected{% endif %}>F</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="internet" class="form-select">
-                                <option value="">Internet Access</option>
-                                <option value="yes" {% if selected_internet == 'yes' %}selected{% endif %}>Yes</option>
-                                <option value="no" {% if selected_internet == 'no' %}selected{% endif %}>No</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="activities" class="form-select">
-                                <option value="">Extracurricular</option>
-                                <option value="yes" {% if selected_activities == 'yes' %}selected{% endif %}>Yes</option>
-                                <option value="no" {% if selected_activities == 'no' %}selected{% endif %}>No</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 d-grid">
-                            <button type="submit" class="btn btn-primary">Filter</button>
-                        </div>
-                    </form>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover table-bordered">
+                        <table class="table table-striped table-hover align-middle">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Student ID</th>
+                                    <th>Username</th>
                                     <th>Name</th>
                                     <th>Email</th>
-                                    <th>Academic Data</th>
-                                    <th>Behavioral Data</th>
-                                    <th>Performance</th>
-                                    <th>Status</th>
+                                    <th>Role</th>
+                                    <th>Grade</th>
+                                    <th>Predictions</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for student in students %}
                                 <tr>
                                     <td class="fw-bold">{{ student.student_id }}</td>
+                                    <td>{{ student.user.username }}</td>
+                                    <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td><span class="badge bg-info text-dark">{{ student.user.get_role_display }}</span></td>
                                     <td>
-                                        <strong>{{ student.first_name }} {{ student.last_name }}</strong>
-                                        {% if student.user %}
-                                        <br><small class="text-muted">Linked to: {{ student.user.username }}</small>
+                                        {% if student.current_grade %}
+                                            <span class="badge {% if student.current_grade == 'A' %}bg-success{% elif student.current_grade == 'B' %}bg-info{% elif student.current_grade == 'C' %}bg-warning text-dark{% elif student.current_grade == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                                {{ student.current_grade }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ student.email }}</td>
                                     <td>
-                                        <small>
-                                            <strong>Attendance:</strong> {{ student.attendance_percentage|floatformat:1 }}%<br>
-                                            <strong>Previous Grade:</strong> {{ student.previous_grade|floatformat:1 }}<br>
-                                            <strong>Study Hours:</strong> {{ student.study_time|floatformat:1 }}/week<br>
-                                            <strong>Past Failures:</strong> {{ student.failures_past }}
-                                        </small>
+                                        <span class="badge bg-secondary">{{ student.prediction_count }}</span>
                                     </td>
                                     <td>
-                                        <small>
-                                            <strong>Family Support:</strong> {{ student.family_support }}/10<br>
-                                            <strong>Parent Education:</strong> {{ student.parent_education_level }}/10<br>
-                                            <strong>Internet Access:</strong>
-                                            {% if student.internet_access_at_home %}
-                                                <span class="text-success">Yes</span>
-                                            {% else %}
-                                                <span class="text-danger">No</span>
-                                            {% endif %}<br>
-                                            <strong>Extracurricular:</strong>
-                                            {% if student.extracurricular_activities %}
-                                                <span class="text-success">Yes</span>
-                                            {% else %}
-                                                <span class="text-muted">No</span>
-                                            {% endif %}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="text-center">
-                                            {% if student.current_grade %}
-                                                <span class="badge fs-6 {% if student.current_grade == 'A' %}bg-success{% elif student.current_grade == 'B' %}bg-info{% elif student.current_grade == 'C' %}bg-warning{% elif student.current_grade == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
-                                                    {{ student.current_grade }}
-                                                </span>
-                                            {% else %}
-                                                <span class="text-muted">Not graded</span>
-                                            {% endif %}
-                                            {% if student.final_score %}
-                                                <br><small class="text-muted">{{ student.final_score|floatformat:1 }}/100</small>
-                                            {% endif %}
+                                        <div class="d-flex gap-2">
+                                            <a href="{% url 'students:edit_registered_student' student.pk %}" class="btn btn-sm btn-outline-primary">
+                                                Edit
+                                            </a>
+                                            <form method="post" action="{% url 'students:delete_registered_student' student.pk %}" onsubmit="return confirm('Delete this user and linked student profile?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <small>
-                                            <strong>Created:</strong> {{ student.created_at|date:"M d, Y" }}<br>
-                                            <strong>Updated:</strong> {{ student.updated_at|date:"M d, Y" }}<br>
-                                            {% if student.prediction_count > 0 %}
-                                                <span class="badge bg-success">{{ student.prediction_count }} Prediction{{ student.prediction_count|pluralize }}</span>
-                                                {% if student.latest_prediction %}
-                                                    <br><small class="text-muted">Latest: {{ student.latest_prediction.predicted_grade }} ({{ student.latest_prediction.predicted_score|floatformat:1 }})</small>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="badge bg-secondary">No Predictions</span>
-                                            {% endif %}
-                                        </small>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center py-4">
-                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                        <h5 class="text-muted">No students found in the database.</h5>
-                                        <p class="text-muted">Students will appear here once they are added to the system.</p>
+                                    <td colspan="8" class="text-center py-4">
+                                        <h5 class="text-muted mb-1">No registered students found.</h5>
+                                        <p class="text-muted mb-0">Registered student accounts will appear here.</p>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -135,35 +70,29 @@
                         </table>
                     </div>
 
-                    <div class="mt-3 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
-                        <p class="text-muted mb-0">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Total Students: <strong>{{ page_obj.paginator.count }}</strong>
-                        </p>
-                        {% if page_obj.has_other_pages %}
-                        <nav aria-label="Student table pagination">
-                            <ul class="pagination mb-0">
-                                <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-                                    <a class="page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_grade %}grade={{ selected_grade }}&{% endif %}{% if selected_internet %}internet={{ selected_internet }}&{% endif %}{% if selected_activities %}activities={{ selected_activities }}&{% endif %}page={{ page_obj.previous_page_number }}" tabindex="-1">Previous</a>
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Student table pagination" class="mt-3">
+                        <ul class="pagination mb-0 justify-content-end">
+                            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if num == page_obj.number %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ num }}</span>
                                 </li>
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if num == page_obj.number %}
-                                    <li class="page-item active" aria-current="page">
-                                        <span class="page-link">{{ num }}</span>
-                                    </li>
-                                    {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_grade %}grade={{ selected_grade }}&{% endif %}{% if selected_internet %}internet={{ selected_internet }}&{% endif %}{% if selected_activities %}activities={{ selected_activities }}&{% endif %}page={{ num }}">{{ num }}</a>
-                                    </li>
-                                    {% endif %}
-                                {% endfor %}
-                                <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-                                    <a class="page-link" href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_grade %}grade={{ selected_grade }}&{% endif %}{% if selected_internet %}internet={{ selected_internet }}&{% endif %}{% if selected_activities %}activities={{ selected_activities }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                                {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
                                 </li>
-                            </ul>
-                        </nav>
-                        {% endif %}
-                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
                 </div>
             </div>
         </div>

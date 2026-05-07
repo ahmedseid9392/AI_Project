@@ -2,6 +2,8 @@ from django import forms
 from apps.predictions.ml_model import performance_model
 from apps.students.models import Student
 
+EXCLUDED_INPUT_FIELDS = {'student_id', 'id', 'name', 'full_name', 'student_name'}
+
 
 def build_dynamic_prediction_form(feature_names=None, column_types=None, is_staff=False):
     """Dynamically create a prediction form based on the trained model's features."""
@@ -31,11 +33,13 @@ def build_dynamic_prediction_form(feature_names=None, column_types=None, is_staf
         'internet_access': [('1', 'Yes'), ('0', 'No')],
         'extra_activities': [('1', 'Yes'), ('0', 'No')],
     }
-
     for col in feature_names:
         col_type = column_types.get(col, 'numeric')
         label = col.replace('_', ' ').title()
         lower_col = col.lower()
+
+        if lower_col in EXCLUDED_INPUT_FIELDS:
+            continue
 
         if lower_col in COMMON_CHOICES:
             fields[col] = forms.ChoiceField(
