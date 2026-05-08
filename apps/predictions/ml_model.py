@@ -48,8 +48,14 @@ class StudentPerformanceModel:
     def _load_config(self):
         """Load model configuration from disk."""
         if os.path.exists(self.config_path):
-            with open(self.config_path, 'r') as f:
-                config = json.load(f)
+            try:
+                with open(self.config_path, 'r') as f:
+                    raw_config = f.read().strip()
+                    if not raw_config:
+                        return None
+                    config = json.loads(raw_config)
+            except (OSError, json.JSONDecodeError):
+                return None
             self.feature_names = config.get('feature_names', [])
             self.target_column = config.get('target_column', None)
             self.feature_stats = config.get('feature_stats', {})
